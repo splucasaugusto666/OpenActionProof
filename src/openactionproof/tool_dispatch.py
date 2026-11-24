@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from typing import Callable
 
 from .core import canonical, sha256
@@ -199,11 +200,38 @@ def dispatch_write(*, ledger: DispatchLedger, scope: str, permitted_resource: st
         return DispatchResult(claimed, record.outcome)
     if claimed != "CLAIMED":
         return DispatchResult(claimed)
+    # A buggy trusted synchronous adapter must not accidentally invoke the writer
+    # twice, move it to a different thread, or retain it for delayed execution.
+    owner = threading.get_ident()
+    lock = threading.Lock()
+    invoked = False
+    closed = False
+    violated = False
+    actual_status = "NOT_INVOKED"
+
+    def once():
+        nonlocal invoked, violated, actual_status
+        with lock:
+            if closed or invoked or threading.get_ident() != owner:
+                violated = True
+                raise RuntimeError("dispatch callback is single-use and synchronous")
+            invoked = True
+        try:
+            result = write(permitted_resource, expected_value)
+        except Exception:
+            actual_status = "RAISED"
+            raise
+        actual_status = "RETURNED"
+        return result
+
     try:
-        outcome = verify(lambda: write(permitted_resource, expected_value))
+        outcome = verify(once)
     except Exception:
         outcome = None
-    if not _valid_outcome(outcome):
+    finally:
+        with lock:
+            closed = True
+    if violated or not _valid_outcome(outcome) or outcome.actor_status != actual_status:
         ledger.record(scope, call["id"], digest, None)
         return DispatchResult("CLAIMED_UNRESOLVED")
     if not ledger.record(scope, call["id"], digest, outcome):

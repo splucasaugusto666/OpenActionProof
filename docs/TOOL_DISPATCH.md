@@ -37,3 +37,7 @@ New databases use schema version 1. For an existing dedicated legacy dispatch da
 ### Evidence
 
 Local Python 3.13.5: 81 tests passed in 19.899 seconds; 10 new recovery tests passed. A real subprocess exited immediately after committing the claim; reopening preserved the claim without permitting duplicate invocation. Tests also cover concurrent write-once outcome recording (16 attempts, one accepted), explicit migration, missing schema, simulated outcome write failure after an effect, invalid outcomes and duplicate retrieval. The observation corpus remained 16/16. CI for this proposal is pending. No physical power-loss, distributed storage, independent security certification, live model SDK, or automatic reconciliation protocol has been demonstrated.
+
+## Synchronous callback guard
+
+The trusted verifier must execute the provided write callback at most once, on the calling thread, before returning. The adapter closes the callback after verification, rejects duplicate and cross-thread invocation, and records an unresolved claim when observed callback behavior disagrees with the reported actor status. A callback retained after return cannot execute later. This prevents accidental misuse of the supplied callback, not arbitrary side effects from malicious trusted Python code. Six new regression tests; 105 local tests passed in 26.199 seconds (Python 3.13.5). CI pending for this change.
