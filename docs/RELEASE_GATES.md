@@ -1,12 +1,11 @@
 # Release gates — current research preview
 
-- Local construction suite: 83/83 tests passed in Python 3.13.5; two additional portable-path and exception-redaction regression tests.
-- Prior PR #10: merged after Python 3.10, 3.12 and 3.13 GitHub Actions jobs passed.
-- Local wheel 0.9.0rc1: built and installed in a clean Linux virtual environment with no runtime dependencies. Installed smoke test passed 3 file cases, 14 HTTP cases and 16 observation cases. The local wheel is a development build, not a published release or byte-identical remote CI artifact.
-- Cross-platform installed wheel checks: configured for Ubuntu, Windows and macOS; results pending.
-- Optional Inspect AI integration: configured with a pinned framework dependency and three controlled fixtures; framework unavailable locally, execution pending in CI. Not a live-agent evaluation.
-- Held-out corpus, independent baseline comparison, and external replication: pending.
-- Stronger observer isolation, independent threat-model review, secret lifecycle and reconciliation protocol: pending.
-- Release package provenance review and tagged version: pending.
+- PR #11 merged after all seven GitHub Actions jobs passed: Python 3.10/3.12/3.13, installed wheel on Ubuntu/Windows/macOS, and the pinned Inspect AI controlled evaluation. The integration executes the actual evaluation framework but no live model.
+- Local preview package 0.9.0rc1 was built and installed; 33 installed smoke cases passed. No official release tag or GitHub release yet.
+- Proposed scope PR: 91/91 local tests passed. Frozen 12-case evaluation matched every target verdict; broader exact-operation endpoint exposed two false positives when the target verdict was misused. An optional exact snapshot scope adapter addresses the two known classes in regression tests. See benchmarks/POST_FREEZE_SCOPE_RESULTS.md and docs/SCOPED_VERIFICATION.md. Remote CI for this PR pending.
+- Independent held-out evaluation and external verifier comparison: not yet demonstrated. Developer-authored post-freeze corpus is not independent or blinded.
+- Independent threat-model review, stronger observer isolation and secret lifecycle: pending.
+- Recovery journal exists; fresh authenticated reconciliation protocol and durable intent lifecycle remain incomplete.
+- Release provenance review, official version metadata and GitHub release publication: pending.
 
-Do not merge the proposed PR while any required workflow is unconfirmed. This is not production-ready, independently validated, a Guinness record or evidence of superiority to competing tools.
+No merge while required CI is unconfirmed. A 1.0 release must be identifiable and usable, with a documented scope and limitations, passing relevant tests, reproducible framework integration and honest comparative evidence. Do not silently weaken the saved release gates, claim external approval, or tag 1.0 before the criteria are met.
