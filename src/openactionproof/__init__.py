@@ -1,1 +1,2 @@
-"""Independent action outcome verification (research prototype)."""\n__version__ = "0.1.0"\n
+"""Independent action outcome verification (research prototype)."""
+__version__ = "0.1.0"
