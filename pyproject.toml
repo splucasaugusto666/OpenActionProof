@@ -12,6 +12,9 @@ license = {text = "Apache-2.0"}
 authors = [{name = "Project Genesis X contributors"}]
 keywords = ["ai-agents", "verification", "reliability", "evidence"]
 
+[project.optional-dependencies]
+public-evidence = ["cryptography>=46,<47"]
+
 [project.scripts]
 oap = "openactionproof.cli:main"
 
