@@ -1,4 +1,4 @@
-# OpenActionProof (Project Genesis X) — research prototype v0.4
+# OpenActionProof (Project Genesis X) — research preview 0.9.0rc1
 
 > **Did the AI agent actually do what it claimed?** An offline, vendor-neutral outcome-verification experiment and seed for an adversarial conformance lab.
 
@@ -6,7 +6,7 @@
 
 ## Install & try locally
 
-Requires Python 3.10+. **No API keys, model account, network, or pip dependencies.**
+Requires Python 3.10+. **The core runtime has no third-party dependencies or model API requirements.** Build tools may need downloading; the optional Inspect AI example requires its own dependencies.
 
 ```bash
 PYTHONPATH=src python -m openactionproof demo --output evidence/generated
@@ -57,7 +57,7 @@ predeclared expected outcome + task identifier
 - Receipt checksum verification does **not** re-check the filesystem or independently validate a claimed action. Third-party attestations, signatures and independent witnesses are out of scope.
 - Timeout means incomplete knowledge, not confirmed failure or success. It does not guarantee safe retry or prevent duplicate side effects.
 - Path checks reject traversal/symlinks in simple local cases; not robust against hostile concurrent filesystem swaps, hard links or races. Do not run with untrusted callbacks.
-- No real GitHub, HTTP, cloud, database or model adapter in v0.1. No durability guarantee across crashes.
+- The original file demo has no external integrations; later modules provide loopback HTTP and local SQLite reference adapters, not production remote integrations. No durability guarantee across crashes.
 - Synthetic cases are construction tests, **not evidence of production accuracy or superiority**.
 
 See `docs/DECISIONS.md`, `docs/EXPERIMENTS.md`, `docs/NEXT_ACTIONS.md`, and `research/landscape.md`.
@@ -90,3 +90,8 @@ The lab now includes a real socket read timeout after a controlled commit and an
 Use `openactionproof.tool_session.verify_tool_call` to pin a desired SQLite resource value, observe it through an authenticated subprocess, invoke a trusted synchronous callback, then independently assess the final state. The tool return value is not a success oracle. Actor status and state verdict are separate; a matching state never establishes actor attribution. See `docs/TOOL_INTEGRATION.md`.
 
 Run the new adversarial corpus: `PYTHONPATH=src python -m openactionproof.observation_benchmark`. It emits a JSON report with the per-case results and confusion matrices. The corpus is developer-authored, not an independent evaluation against existing verifiers.
+
+
+## Research preview packaging
+
+The proposed package metadata is now 0.9.0rc1 (not a tagged release). Build a wheel with `python -m pip wheel --no-deps --wheel-dir dist .`, then install the resulting wheel into a clean virtual environment with `python -m pip install --no-deps --no-index --find-links dist open-action-proof==0.9.0rc1`. Run `python scripts/smoke_installed.py` from a checkout using that environment. The smoke test exercises the installed CLI and both development corpora from a separate temporary working directory. Core runtime has zero third-party dependencies. The optional Inspect AI evaluation uses a pinned framework version and controlled callbacks, not a live LLM; see docs/INSPECT_INTEGRATION.md. Cross-platform and optional framework CI are pending.
