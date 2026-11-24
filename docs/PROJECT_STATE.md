@@ -42,3 +42,7 @@ PR #11 merged after all seven GitHub Actions jobs passed, including three OS ins
 ## Public-key evidence — proposed PR
 
 PR #14 merged after all seven CI jobs passed. Optional Ed25519 observation signatures use a caller-pinned public key, task/goal/request binding, freshness and persistent replay consumption. Python local suite: 114/114 passed in 26.139 seconds, nine new tests with cryptography 46.0.4. Published code/test blob hashes match local bytes. Explicit CI job for optional dependencies configured; remote results pending. No public identity certification, independent security audit, or external superiority claim. See docs/PUBLIC_EVIDENCE.md.
+
+## APEX global discovery — proposed documentation PR
+
+PR #19 merged after nine CI jobs; PR #20 merged after eight. The published v0.9.0rc2 remains available. Repository API snapshot: 1 star, 0 forks, 0 wheel downloads, 0 topics, no description; users and retention unknown. Added release-first README, five-minute quickstart, changelog, citation metadata and frozen global growth scorecard. The quickstart example was actually executed in a clean virtual environment against a locally built 0.9.0rc2 wheel (not claimed byte-identical to the published artifact); expected three verdicts matched. Repository metadata edits are not supported by the current connector. No external promotion, new downloads, independent validation or overall leadership claimed. The stable release gates remain open.
