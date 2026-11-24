@@ -1,0 +1,87 @@
+name: Publish validated research preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-preview.yml'
+      - 'pyproject.toml'
+permissions:
+  contents: read
+concurrency:
+  group: research-preview-0.9.0rc2
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, python: '3.10'}
+          - {os: ubuntu-latest, python: '3.12'}
+          - {os: ubuntu-latest, python: '3.13'}
+          - {os: windows-latest, python: '3.12'}
+          - {os: macos-latest, python: '3.12'}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build and install exact preview package
+        run: |
+          python -m pip wheel --no-deps --wheel-dir dist .
+          python -m pip install --no-index --no-deps --find-links dist open-action-proof==0.9.0rc2
+          python scripts/smoke_installed.py
+      - name: Install public evidence extra and run full tests
+        run: |
+          python -m pip install ".[public-evidence]"
+          python -c "import openactionproof.public_observation"
+          python -m unittest discover -s tests -v
+      - name: Run actual controlled Inspect AI evaluation
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        env:
+          INSPECT_DISABLE_MODEL_API: '1'
+        run: |
+          python -m pip install inspect-ai==0.3.292
+          python integrations/inspect_ai_smoke.py
+      - name: Generate checksums
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        working-directory: dist
+        run: sha256sum *.whl > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        with:
+          name: validated-preview
+          path: dist/
+          if-no-files-found: error
+  publish:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: validated-preview
+          path: dist
+      - name: Verify artifact and publish immutable preview tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v0.9.0rc2
+        run: |
+          set -euo pipefail
+          test -f dist/open_action_proof-0.9.0rc2-py3-none-any.whl
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "Tag already exists; refusing to overwrite."
+            exit 1
+          else
+            code=$?
+            test "$code" -eq 2
+          fi
+          gh release create "$TAG" dist/open_action_proof-0.9.0rc2-py3-none-any.whl dist/SHA256SUMS.txt --target "$GITHUB_SHA" --prerelease --title "OpenActionProof 0.9.0rc2 — Research preview" --notes-file docs/PREVIEW_RC2.md
+          gh release view "$TAG" --json tagName,isPrerelease,url,assets
