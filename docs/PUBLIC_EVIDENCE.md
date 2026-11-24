@@ -11,3 +11,12 @@ Local evidence: cryptography 46.0.4; all nine new tests passed, including RFC 80
 Reproduce: python -m pip install ".[public-evidence]" then python -m unittest discover -s tests -p test_public_observation.py -v.
 
 This is an optional signature layer, not evidence of comparative superiority to other projects.
+
+
+## Observer key authorization
+
+The optional key_policy module adds a caller-pinned KeyPolicy snapshot containing up to 256 unique KeyGrant records. Each grant binds one Ed25519 public key to an observer ID, a half-open validity interval [valid_from_ns, valid_until_ns), and an explicit revocation flag. assess_authorized_pair requires the same authorized key for both observations, complete coverage of both request windows, and authorization at verification time. Revoked keys deny even earlier unconsumed signatures. The envelope fingerprint selects only among caller-trusted grants and cannot introduce trust. Rotation uses a new pair and does not reset the durable replay guard. Rejected grants do not consume challenges.
+
+This is an immutable in-memory authorization snapshot, not a certificate authority, revocation service, persistent key store, or proof of observer independence. The relying party must supply the current authentic policy, prevent rollback/stale copies, protect private keys, distribute policy updates, and coordinate concurrent updates. Do not treat these controls as a complete key lifecycle system.
+
+Local verification: 8/8 new authorization tests, and 124/124 full-suite tests (26.885 s), Python 3.13.5 with cryptography 46.0.4. Code and test Git blobs matched the local files. PR #17 merged after all eight remote jobs passed, including full Windows suite. The new authorization change is pending remote CI.
