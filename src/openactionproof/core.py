@@ -52,8 +52,15 @@ def snapshot(workspace: Path, relative_path: str) -> dict[str, Any]:
         return {"exists": False, "sha256": None, "size": None}
     if not target.is_file():
         raise ValueError("Only regular files can be verified")
-    data = target.read_bytes()
-    return {"exists": True, "sha256": sha256(data), "size": len(data)}
+    # Bound read-side memory regardless of the observed file's size. This is
+    # still a trusted-workspace snapshot, not a race-safe filesystem sandbox.
+    digest = hashlib.sha256()
+    size = 0
+    with target.open("rb") as stream:
+        while chunk := stream.read(256 * 1024):
+            digest.update(chunk)
+            size += len(chunk)
+    return {"exists": True, "sha256": digest.hexdigest(), "size": size}
 
 
 @dataclass(frozen=True)
