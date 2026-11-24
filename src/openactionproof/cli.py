@@ -1,4 +1,4 @@
-"""Offline demonstration CLI. No remote APIs, models, or credentials."""
+"""Offline demonstration CLI, no API keys required."""
 from __future__ import annotations
 
 import argparse
@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from .core import ActionSpec, check_receipt, verify_action
+
 
 def demo(output: Path) -> dict[str, str]:
     output.mkdir(parents=True, exist_ok=True)
@@ -19,6 +20,7 @@ def demo(output: Path) -> dict[str, str]:
             ("C_partial_timeout", "expected full data\n", "partial_then_timeout", None),
         ]
         for case_id, content, operation_name, agent_claim in cases:
+            # Isolated file per run; intentional duplicate filenames are safe.
             path = f"{case_id}.txt"
             spec = ActionSpec(case_id, path, content.encode(), agent_claim)
             def op(target: Path, name: str = operation_name, payload: bytes = spec.expected_bytes) -> None:
@@ -37,12 +39,13 @@ def demo(output: Path) -> dict[str, str]:
             results[case_id] = receipt["verification"]["verdict"]
     return results
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OpenActionProof: verify action outcomes")
     sub = parser.add_subparsers(dest="command", required=True)
     p_demo = sub.add_parser("demo", help="Run three synthetic action scenarios")
     p_demo.add_argument("--output", type=Path, default=Path("evidence/generated"))
-    p_check = sub.add_parser("verify-receipt", help="Validate receipt checksum (not provenance)")
+    p_check = sub.add_parser("verify-receipt", help="Verify the local JSON receipt checksum (not provenance)")
     p_check.add_argument("file", type=Path)
     args = parser.parse_args()
     if args.command == "demo":
