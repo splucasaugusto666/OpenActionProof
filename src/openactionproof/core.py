@@ -1,5 +1,7 @@
-"""File outcome verification with checksum receipts (research-only).
-Callbacks must be trusted; this does not isolate hostile agents or prove provenance.
+"""File outcome verifier and checksum receipts.
+
+Security scope: trusted local test workspace only. Hashes provide tamper *detection*
+when compared against a trusted copy; they do not establish who produced evidence.
 """
 from __future__ import annotations
 
@@ -7,19 +9,31 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Callable
 
 SCHEMA = "openactionproof.receipt.v0.1"
 
+
 def canonical(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
+
 def relative_target(workspace: Path, relative_path: str) -> Path:
-    """Confine paths in a nonhostile local workspace; NOT race/TOCTOU-safe."""
+    """Constrain local demo targets to an existing, non-symlinked workspace.
+
+    No protection against hostile concurrent filesystem mutation/TOCTOU.
+    """
+    if not isinstance(relative_path, str) or not relative_path or "\\" in relative_path or "\x00" in relative_path:
+        raise ValueError("Target path must be a portable relative path")
+    parts = relative_path.split("/")
+    windows = PureWindowsPath(relative_path)
+    if windows.anchor or any(part in ("", ".", "..") or ":" in part or part.endswith((" ", ".")) or part.split(".", 1)[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in "123456789¹²³"), *(f"LPT{i}" for i in "123456789¹²³")} for part in parts):
+        raise ValueError("Target path must be a portable relative path")
     rel = Path(relative_path)
     if rel.is_absolute() or not rel.parts or ".." in rel.parts or "." in rel.parts:
         raise ValueError("Target path must be a safe relative path")
@@ -31,6 +45,7 @@ def relative_target(workspace: Path, relative_path: str) -> Path:
         raise ValueError("Path escaped the workspace")
     return target
 
+
 def snapshot(workspace: Path, relative_path: str) -> dict[str, Any]:
     target = relative_target(workspace, relative_path)
     if not target.exists():
@@ -40,12 +55,14 @@ def snapshot(workspace: Path, relative_path: str) -> dict[str, Any]:
     data = target.read_bytes()
     return {"exists": True, "sha256": sha256(data), "size": len(data)}
 
+
 @dataclass(frozen=True)
 class ActionSpec:
     task_id: str
     path: str
     expected_bytes: bytes
     claim: bool | None = None
+
 
 def verify_action(
     workspace: Path,
@@ -54,7 +71,11 @@ def verify_action(
     *,
     operation_name: str,
 ) -> dict[str, Any]:
-    """Measure final state independently of an agent's claim, NOT authenticated causality."""
+    """Observe independent final state; do not trust the operation's success claim.
+
+    `operation` is trusted test code provided by caller. Real third-party agent
+    isolation, independent observers, signing, and remote integrations are future work.
+    """
     target = relative_target(workspace, spec.path)
     expected = {"exists": True, "sha256": sha256(spec.expected_bytes), "size": len(spec.expected_bytes)}
     before = snapshot(workspace, spec.path)
@@ -62,29 +83,29 @@ def verify_action(
     attempt = "ATTEMPTED"
     try:
         operation(target)
-    except TimeoutError as exc:
-        error = f"TimeoutError: {exc}"
+    except TimeoutError:
+        error = "TimeoutError"
         attempt = "TIMED_OUT"
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
+    except Exception:  # do not persist arbitrary exception messages
+        error = "OperationError"
         attempt = "ERRORED"
     after = snapshot(workspace, spec.path)
     matches = after == expected
     if error is not None:
-        verdict = "INDETERMINATE"
+        verdict = "INDETERMINATE"  # observed matching state cannot prove completed transaction
         reason = "Operation failed or timed out; execution outcome is uncertain"
     elif matches and before == expected:
         verdict = "STATE_SATISFIED_UNATTRIBUTED"
         reason = "Expected state pre-existed; this observation cannot attribute execution to the agent"
     elif matches:
         verdict = "CONFIRMED"
-        reason = "Observed state changed to match predeclared expected state; causality not authenticated"
+        reason = "Independently observed state changed to match predeclared expected state; causality is not authenticated"
     elif spec.claim is True:
         verdict = "FALSE_SUCCESS"
-        reason = "Agent claimed success, but observed state differs"
+        reason = "Agent claimed success, but independently observed state differs"
     else:
         verdict = "NOT_CONFIRMED"
-        reason = "Observed state does not match expected state"
+        reason = "Independently observed state does not match expected state"
     body = {
         "schema": SCHEMA,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -95,14 +116,14 @@ def verify_action(
         "attempt": {"name": operation_name, "status": attempt, "error": error},
         "agent_claimed_success": spec.claim,
         "final_observation": after,
-        "verification": {"verifier": "filesystem-sha256-v0.1", "verdict": verdict,
-                         "matches_expected": matches, "reason": reason},
+        "verification": {"verifier": "filesystem-sha256-v0.1", "verdict": verdict, "matches_expected": matches, "reason": reason},
         "limitations": "Local observation only. Receipt hash is not an authenticated signature or proof of independent custody.",
     }
     return {**body, "receipt_sha256": sha256(canonical(body))}
 
+
 def check_receipt(receipt: dict[str, Any]) -> bool:
-    """Verify self-checksum ONLY. A forger can recompute it."""
+    """Check checksum integrity ONLY; neither provenance nor environmental truth."""
     if not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA:
         return False
     stored = receipt.get("receipt_sha256")
