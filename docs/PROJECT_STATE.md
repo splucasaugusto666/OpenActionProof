@@ -38,3 +38,7 @@ PR #10 merged after all three Python CI jobs succeeded. New proposal aligns dist
 ## Post-freeze scope evaluation and regression fix — proposed PR
 
 PR #11 merged after all seven GitHub Actions jobs passed, including three OS installed-wheel checks and real Inspect AI controlled evaluation. Frozen new corpus before execution (commit 2d6930044d1c03d3227d374d974955702ed88b1b): 12/12 target verdicts matched, but target-only inference had two false positives on the complete-operation endpoint (collateral and duplicate writes). Results published without changing labels. Added a separate optional exact-snapshot SQLite scope adapter; 91/91 local tests passed (22.738 s), eight new scope regressions. Both changed Python blobs and evaluation script match the tested local bytes. Remote CI for this PR pending. No independent evaluation, live LLM, production security, or official 1.0 release claimed.
+
+## Public-key evidence — proposed PR
+
+PR #14 merged after all seven CI jobs passed. Optional Ed25519 observation signatures use a caller-pinned public key, task/goal/request binding, freshness and persistent replay consumption. Python local suite: 114/114 passed in 26.139 seconds, nine new tests with cryptography 46.0.4. Published code/test blob hashes match local bytes. Explicit CI job for optional dependencies configured; remote results pending. No public identity certification, independent security audit, or external superiority claim. See docs/PUBLIC_EVIDENCE.md.
