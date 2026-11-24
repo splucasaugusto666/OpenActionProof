@@ -1,4 +1,4 @@
-# OpenActionProof (Project Genesis X) — research prototype v0.1
+# OpenActionProof (Project Genesis X) — research prototype v0.2
 
 > **Did the AI agent actually do what it claimed?** An offline, vendor-neutral outcome-verification experiment and seed for an adversarial conformance lab.
 
@@ -65,3 +65,7 @@ See `docs/DECISIONS.md`, `docs/EXPERIMENTS.md`, `docs/NEXT_ACTIONS.md`, and `res
 ## Contributing
 
 Start with a reproducible failure case or evidence contract, add a regression test, and open an issue or PR. See CONTRIBUTING.md. Project is licensed under Apache-2.0.
+
+## HTTP conformance lab (v0.2)
+
+Run `PYTHONPATH=src python -m openactionproof.http_lab --output evidence/generated/http-benchmark.json` to execute 12 controlled fixtures, compare two naive baselines, and produce checksummed evidence. See `benchmarks/METHODOLOGY.md`. Synthetic results do not establish real-agent reliability.

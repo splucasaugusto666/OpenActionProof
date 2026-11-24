@@ -1,9 +1,7 @@
 # Project state
 
-Date: 2026-11-23. Stage: v0.1 local proof of concept.
+Stage: v0.2 local research MVP, 2026-11-23.
 
-Implemented: stdlib Python verifier; three synthetic demo actions; JSON receipt integrity checksum; eight unit tests; GitHub Actions CI definition.
+Implemented: local file verifier, 12-case loopback HTTP conformance lab, self-checksum receipts, binary benchmark with two naive baselines, CLI, CI definition, research and governance docs. 12 unit tests passed in the local Python 3.13.5 environment; 12/12 synthetic HTTP fixture verdicts matched. Remote CI status is not yet confirmed.
 
-Local tests: 8/8 passed in the development container. These results are NOT proof of GitHub Actions success, real-agent reliability, or superiority to competing systems.
-
-Limitations: same-domain verifier and callback; no authenticated receipt; no real HTTP, GitHub, cloud or LLM-agent adapter; timeout produces uncertainty, not proof of failure; no performance benchmarks.
+Not a production security boundary. No real LLM agents, external verifier comparisons, authenticated provenance, independent reproduction, distributed durability, or officially approved Guinness attempt.

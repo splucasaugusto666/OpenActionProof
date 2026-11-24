@@ -22,3 +22,6 @@ jobs:
           for file in evidence/generated/*.json; do
             PYTHONPATH=src python -m openactionproof verify-receipt "$file"
           done
+
+      - name: HTTP conformance benchmark
+        run: PYTHONPATH=src python -m openactionproof.http_lab --output evidence/generated/http-benchmark.json
