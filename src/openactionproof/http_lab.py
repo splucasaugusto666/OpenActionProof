@@ -98,15 +98,37 @@ def service(store: Store):
                 self.reply(404, {})
 
         def do_POST(self):
+            # Consume the request body before sending a response or closing the
+            # socket. Closing with unread bytes can reset the connection on Windows.
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 <= length <= 65536:
+                    raise ValueError("invalid request length")
+                raw = self.rfile.read(length)
+                if len(raw) != length:
+                    raise ValueError("incomplete request")
+                data = json.loads(raw) if raw else {}
+                if not isinstance(data, dict):
+                    raise ValueError("invalid request body")
+            except (ValueError, OSError, RecursionError):
+                self.reply(400, {"error": "invalid request body"})
+                return
             if self.path == "/settle":
+                if data:
+                    self.reply(400, {"error": "settle requires empty object"})
+                    return
                 store.settle()
                 self.reply(200, {"settled": True})
                 return
             if self.path != "/action":
                 self.reply(404, {})
                 return
-            length = int(self.headers.get("Content-Length", "0"))
-            data = json.loads(self.rfile.read(length))
+            if (set(data) != {"mode", "resource", "key"}
+                    or not all(isinstance(v, str) for v in data.values())
+                    or data["mode"] not in {"ok", "queued", "queued_fail", "noop", "stale", "timeout", "lost_ack"}
+                    or data["resource"] not in store.counts):
+                self.reply(400, {"error": "invalid action"})
+                return
             mode, resource, key = data["mode"], data["resource"], data["key"]
             if key in store.keys:
                 self.reply(200, {"deduplicated": True})

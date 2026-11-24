@@ -22,6 +22,11 @@ jobs:
         run: python -m pip install --no-index --no-deps --find-links dist open-action-proof==0.9.0rc2
       - name: Test installed package outside source tree
         run: python scripts/smoke_installed.py
+      - name: Exercise full installed-package suite across operating systems
+        run: |
+          python -m pip install ".[public-evidence]"
+          python -c "import openactionproof.public_observation"
+          python -m unittest discover -s tests -v
   inspect-integration:
     runs-on: ubuntu-latest
     steps:
