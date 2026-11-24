@@ -1,0 +1,38 @@
+name: APEX external file comparison
+on:
+  pull_request:
+    paths:
+      - 'scripts/apex_file_compare.py'
+      - 'benchmarks/APEX_FILE_PROTOCOL.md'
+      - '.github/workflows/apex-file-comparison.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve and verify exact published comparator wheel
+        run: |
+          python -m pip download --no-deps --only-binary=:all: --dest external 'verieffect==0.2.0a4'
+          echo '4d58a0f2521140fcc762c9b19e672645a82964bd4bc7532097e33858a5088d1f  external/verieffect-0.2.0a4-py3-none-any.whl' | sha256sum -c -
+          python -m pip install . external/verieffect-0.2.0a4-py3-none-any.whl
+          python -m pip freeze > apex-environment.txt
+      - name: Run actual external comparison
+        run: |
+          python scripts/apex_file_compare.py > apex-results.json
+          cat apex-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apex-file-comparison
+          path: |
+            apex-results.json
+            apex-environment.txt
