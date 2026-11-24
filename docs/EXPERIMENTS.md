@@ -21,3 +21,7 @@ Local Python 3.13.5: 21 unit tests passed. Nine new tests exercise valid envelop
 ## v0.4 transport tests
 
 Local Python 3.13.5: 23 unit tests passed, 14/14 fixture verdicts matched. Binary confirmation metrics: state verifier TP=5 FP=0 TN=9 FN=0; claim-only TP=3 FP=8 TN=1 FN=2; HTTP 2xx TP=3 FP=9 TN=0 FN=2. In-sample, synthetic fixtures only. A real socket timeout and HTTP 503 were tested separately.
+
+## Proposed v0.5: durable replay protection
+
+2026-11-23, Python 3.13.5: `PYTHONPATH=src python -m unittest discover -s tests -v` produced 30 passing tests in 2.055 seconds. In the concurrent test, exactly one of 16 competing connections consumed the challenge. A separate Python process rejected a previously consumed challenge. Invalid MACs did not consume a challenge, missing/corrupt databases failed closed, and persisted capacity prevented drift. Not a power-loss or distributed-storage experiment. Remote CI unconfirmed.

@@ -10,3 +10,5 @@
 - Shared-key HMAC is an optional lab authentication experiment. The relying party supplies the task/observer/challenge and trusted key; the observer must sign only its own trusted observations. A verifier with the same key can forge evidence. No public nonrepudiation.
 
 - Elapsed read timeout is separately tested from connection loss. An observer HTTP non-200 yields no usable observation, therefore INDETERMINATE. Confirmation after timeout depends on the controlled service's authoritative event ledger.
+
+- Use explicit one-time SQLite provisioning, `BEGIN IMMEDIATE`, unique observer/challenge keys and `synchronous=FULL` for local durable replay consumption. Reopening cannot silently recreate missing storage. Do not claim exactly-once execution: only one-time acceptance of an authenticated challenge, contingent on trusted non-rollback storage.
