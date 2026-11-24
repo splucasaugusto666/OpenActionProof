@@ -51,14 +51,20 @@ class DurableReplayGuard:
         """Authenticate and atomically consume once; storage failure denies acceptance."""
         if not verify(key, intent, envelope):
             return False
+        return self._consume_tokens(((intent.observer_id, intent.challenge),))
+
+    def _consume_tokens(self, tokens: tuple[tuple[str, str], ...]) -> bool:
+        """Internal: callers must authenticate every token before consumption."""
+        if not tokens or len(set(tokens)) != len(tokens):
+            return False
         try:
             with closing(self._connect()) as conn:
                 conn.execute("BEGIN IMMEDIATE")
                 self._check_config(conn)
-                if conn.execute("SELECT COUNT(*) FROM consumed").fetchone()[0] >= self.capacity:
+                if conn.execute("SELECT COUNT(*) FROM consumed").fetchone()[0] + len(tokens) > self.capacity:
                     conn.rollback()
                     return False
-                conn.execute("INSERT INTO consumed VALUES (?, ?)", (intent.observer_id, intent.challenge))
+                conn.executemany("INSERT INTO consumed VALUES (?, ?)", tokens)
                 conn.commit()
                 return True
         except (sqlite3.Error, ValueError):
