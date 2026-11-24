@@ -1,3 +1,4 @@
+from contextlib import closing
 from dataclasses import asdict, replace
 import json
 from pathlib import Path
@@ -55,9 +56,10 @@ class ObserverTests(unittest.TestCase):
     def test_separate_process_sqlite_observer(self):
         with TemporaryDirectory() as tmp:
             db = Path(tmp) / "state.sqlite3"
-            with sqlite3.connect(db) as conn:
+            with closing(sqlite3.connect(db)) as conn:
                 conn.execute("CREATE TABLE resource_state(resource TEXT PRIMARY KEY, revision INTEGER, value TEXT)")
                 conn.execute("INSERT INTO resource_state VALUES ('target', 0, 'old')")
+                conn.commit()
             def read():
                 start = time.time_ns()
                 req = ObservationRequest("observer", "target", secrets.token_hex(32), start, start + 5_000_000_000)

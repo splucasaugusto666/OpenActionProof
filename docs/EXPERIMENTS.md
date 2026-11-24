@@ -29,3 +29,7 @@ Local Python 3.13.5: 23 unit tests passed, 14/14 fixture verdicts matched. Binar
 ## Authenticated observation pair experiment
 
 2026-11-23, Python 3.13.5: `PYTHONPATH=src python -m unittest discover -s tests -q` ran 48 tests in 4.091 seconds, all passed. Nine new tests cover authenticated pair acceptance, replay after reopen, wrong key/task/goal/window, tampering, incomplete pairs, rollback on second-token conflict, 16 competing threads (one accepted, 15 indeterminate), capacity exhaustion, state mismatch and missing storage. Local construction tests only. The prior observer PR #5 CI passed on Python 3.10, 3.12 and 3.13. CI for these new changes is pending.
+
+## Authenticated observer worker experiment
+
+`PYTHONPATH=src python -W error::ResourceWarning -m unittest discover -s tests -q`: 55 tests passed in 9.896 seconds (Python 3.13.5). Seven new tests exercise authenticated observation, separate actor and observer processes, persisted replay rejection, missing resources, expired/future windows, malformed and oversized output, simulated timeout, redacted failure, and no key in command-line arguments. The timeout is injected in this worker test; it is not a measured worker deadline benchmark. An existing SQLite connection leak in a test was corrected. All three changed Python files were compared with the published Git blob SHA. No external-agent or competitor claims.
