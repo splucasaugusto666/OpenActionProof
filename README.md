@@ -84,3 +84,9 @@ The lab now includes a real socket read timeout after a controlled commit and an
 ## Durable replay protection (proposed v0.5)
 
 `DurableReplayGuard` uses SQLite to consume authenticated challenges atomically across processes and reopenings. Explicitly provision a database once with `DurableReplayGuard(path, initialize=True)`; reopen with `DurableReplayGuard(path)`. Do not recreate or restore an older database while challenges are valid. Requires trusted local storage with SQLite locking; no distributed guarantee. See `docs/EVIDENCE_PROTOCOL.md`.
+
+## Trusted tool integration (experimental)
+
+Use `openactionproof.tool_session.verify_tool_call` to pin a desired SQLite resource value, observe it through an authenticated subprocess, invoke a trusted synchronous callback, then independently assess the final state. The tool return value is not a success oracle. Actor status and state verdict are separate; a matching state never establishes actor attribution. See `docs/TOOL_INTEGRATION.md`.
+
+Run the new adversarial corpus: `PYTHONPATH=src python -m openactionproof.observation_benchmark`. It emits a JSON report with the per-case results and confusion matrices. The corpus is developer-authored, not an independent evaluation against existing verifiers.
