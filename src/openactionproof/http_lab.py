@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from pathlib import Path
 import threading
+import time
 from typing import Any
 
 from .core import canonical, sha256
@@ -38,12 +39,14 @@ CASES = (
     Case("accepted_then_failed", (("queued_fail", "target", "a"),), True, FALSE_SUCCESS),
     Case("accepted_pending", (("queued", "target", "a"),), True, INDETERMINATE, settle=False),
     Case("accepted_then_completed", (("queued", "target", "a"),), True, CONFIRMED),
+    Case("elapsed_timeout_after_commit", (("timeout", "target", "a"),), None, CONFIRMED),
     Case("lost_ack_after_commit", (("lost_ack", "target", "a"),), None, CONFIRMED),
     Case("retry_idempotent", (("lost_ack", "target", "a"), ("ok", "target", "a")), True, CONFIRMED),
     Case("duplicate_retry", (("ok", "target", "a"), ("ok", "target", "b")), True, FALSE_SUCCESS),
     Case("wrong_resource", (("ok", "other", "a"),), True, FALSE_SUCCESS),
     Case("stale_agent_read", (("stale", "target", "a"),), True, FALSE_SUCCESS),
     Case("preexisting_state", (("noop", "target", "a"),), True, UNATTRIBUTED, preexisting=True),
+    Case("observer_http_503", (("ok", "target", "a"),), True, INDETERMINATE),
     Case("observer_unavailable", (("ok", "target", "a"),), True, INDETERMINATE, observer_down=True),
     Case("no_claim_no_effect", (("noop", "target", "a"),), None, NOT_CONFIRMED),
 )
@@ -55,6 +58,7 @@ class Store:
         self.events: list[dict[str, Any]] = []
         self.pending: list[tuple[str, str, str]] = []
         self.keys: set[str] = set()
+        self.observer_http_down = False
 
     def apply(self, resource: str, key: str) -> None:
         self.counts[resource] += 1
@@ -86,7 +90,10 @@ def service(store: Store):
 
         def do_GET(self):
             if self.path == "/state":
-                self.reply(200, store.snapshot())
+                if store.observer_http_down:
+                    self.reply(503, {"error": "observer unavailable"})
+                else:
+                    self.reply(200, store.snapshot())
             else:
                 self.reply(404, {})
 
@@ -112,6 +119,10 @@ def service(store: Store):
                 self.reply(200, {"reported_count": 1})
             else:
                 store.apply(resource, key)
+                if mode == "timeout":
+                    time.sleep(0.15)
+                    self.close_connection = True
+                    return
                 if mode == "lost_ack":
                     # Close without a response: deterministic lost acknowledgement,
                     # not a simulated elapsed-time timeout.
@@ -130,8 +141,8 @@ def service(store: Store):
         thread.join()
 
 
-def request(port: int, method: str, path: str, data: dict | None = None) -> tuple[int, dict]:
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+def request(port: int, method: str, path: str, data: dict | None = None, *, timeout: float = 2) -> tuple[int, dict]:
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
     try:
         body = canonical(data) if data is not None else None
         conn.request(method, path, body=body, headers={"Content-Type": "application/json"})
@@ -160,14 +171,23 @@ def execute(case: Case) -> dict:
         attempts = []
         for mode, resource, key in case.attempts:
             try:
-                status, _ = request(port, "POST", "/action", {"mode": mode, "resource": resource, "key": key})
+                status, _ = request(port, "POST", "/action", {"mode": mode, "resource": resource, "key": key}, timeout=0.03 if mode == "timeout" else 2)
             except (OSError, http.client.HTTPException):
                 status = None
             attempts.append({"mode": mode, "resource": resource, "key": key, "status": status})
         if case.settle:
             request(port, "POST", "/settle", {})
-        # Inject missing observation; do not pretend observer failure was tested on wire.
-        after = None if case.observer_down else request(port, "GET", "/state")[1]
+        if case.name == "observer_http_503":
+            store.observer_http_down = True
+        # Separately exercise an actual HTTP error and an injected absent observation.
+        after = None
+        if not case.observer_down:
+            try:
+                status, observation = request(port, "GET", "/state")
+                if status == 200:
+                    after = observation
+            except (OSError, http.client.HTTPException, ValueError):
+                pass
     result = {"schema": "openactionproof.http-lab.v0.2", "case": case.name,
               "expected_state": {"target": 1, "other": 0}, "before": before,
               "attempts": attempts, "agent_claim": case.claim, "after": after,

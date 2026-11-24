@@ -9,3 +9,7 @@ Reproduce: PYTHONPATH=src python -m openactionproof.http_lab --output evidence/g
 Observed local Python 3.13.5 run: 12/12 exact labels; state verifier TP=4 FP=0 TN=8 FN=0; claim-only TP=3 FP=7 TN=1 FN=1; HTTP 2xx TP=3 FP=8 TN=0 FN=1. These are not comparative results against AgentVerify or Inspect AI.
 
 Next: freeze a held-out corpus, use separate observer trust domains, integrate independent external verifiers, assess generalization, record errors and resource costs. Publish negative findings.
+
+## v0.4 extension
+
+Add elapsed socket timeout after commit and actual HTTP 503 observation failure. Current denominator 14, positive labels 5, non-confirmed labels 9. No exclusions. Local results: state verifier 14/14, claim-only 4/14, HTTP-2xx 3/14. Confusion matrices are recorded in docs/EXPERIMENTS.md. The prior v0.2 results remain historical. Stale-authoritative-read scenarios are not yet independently modeled.

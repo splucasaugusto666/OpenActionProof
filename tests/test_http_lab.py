@@ -1,5 +1,5 @@
 import unittest
-from openactionproof.http_lab import CASES, benchmark, check_receipt, execute
+from openactionproof.http_lab import CASES, Store, benchmark, check_receipt, execute, request, service
 
 
 class HTTPConformanceTests(unittest.TestCase):
@@ -26,6 +26,24 @@ class HTTPConformanceTests(unittest.TestCase):
         self.assertIsNone(receipt["attempts"][0]["status"])
         self.assertEqual(receipt["after"]["counts"]["target"], 1)
         self.assertEqual(len(receipt["after"]["events"]), 1)
+
+    def test_actual_socket_timeout(self):
+        with service(Store()) as port:
+            with self.assertRaises(TimeoutError):
+                request(port, "POST", "/action", {"mode": "timeout", "resource": "target", "key": "t"}, timeout=0.03)
+            status, state = request(port, "GET", "/state")
+            self.assertEqual(status, 200)
+            self.assertEqual(state["counts"]["target"], 1)
+
+    def test_actual_observer_http_503(self):
+        store = Store()
+        with service(store) as port:
+            store.observer_http_down = True
+            status, _ = request(port, "GET", "/state")
+            self.assertEqual(status, 503)
+        receipt = execute(next(c for c in CASES if c.name == "observer_http_503"))
+        self.assertIsNone(receipt["after"])
+        self.assertEqual(receipt["verdict"], "INDETERMINATE")
 
 
 if __name__ == "__main__":

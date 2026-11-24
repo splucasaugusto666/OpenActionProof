@@ -8,3 +8,5 @@
 - The fixture oracle is predeclared but in-sample; external validation remains necessary.
 
 - Shared-key HMAC is an optional lab authentication experiment. The relying party supplies the task/observer/challenge and trusted key; the observer must sign only its own trusted observations. A verifier with the same key can forge evidence. No public nonrepudiation.
+
+- Elapsed read timeout is separately tested from connection loss. An observer HTTP non-200 yields no usable observation, therefore INDETERMINATE. Confirmation after timeout depends on the controlled service's authoritative event ledger.

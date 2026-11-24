@@ -17,3 +17,7 @@ The tests are synthetic construction tests. They do not validate real agent beha
 ## v0.3 authenticated receipts
 
 Local Python 3.13.5: 21 unit tests passed. Nine new tests exercise valid envelopes, all HTTP fixture receipts, wrong key, wrong task/observer/challenge, recomputed checksum forgery, inconsistent transition, replay/capacity, malformed inputs/weak keys, and detached copies. These tests do not validate key custody or a remote security boundary.
+
+## v0.4 transport tests
+
+Local Python 3.13.5: 23 unit tests passed, 14/14 fixture verdicts matched. Binary confirmation metrics: state verifier TP=5 FP=0 TN=9 FN=0; claim-only TP=3 FP=8 TN=1 FN=2; HTTP 2xx TP=3 FP=9 TN=0 FN=2. In-sample, synthetic fixtures only. A real socket timeout and HTTP 503 were tested separately.

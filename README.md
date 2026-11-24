@@ -1,4 +1,4 @@
-# OpenActionProof (Project Genesis X) — research prototype v0.3
+# OpenActionProof (Project Genesis X) — research prototype v0.4
 
 > **Did the AI agent actually do what it claimed?** An offline, vendor-neutral outcome-verification experiment and seed for an adversarial conformance lab.
 
@@ -68,9 +68,14 @@ Start with a reproducible failure case or evidence contract, add a regression te
 
 ## HTTP conformance lab (v0.2)
 
-Run `PYTHONPATH=src python -m openactionproof.http_lab --output evidence/generated/http-benchmark.json` to execute 12 controlled fixtures, compare two naive baselines, and produce checksummed evidence. See `benchmarks/METHODOLOGY.md`. Synthetic results do not establish real-agent reliability.
+Run `PYTHONPATH=src python -m openactionproof.http_lab --output evidence/generated/http-benchmark.json` to execute 14 controlled fixtures, compare two naive baselines, and produce checksummed evidence. See `benchmarks/METHODOLOGY.md`. Synthetic results do not establish real-agent reliability.
 
 
 ## Authenticated evidence (v0.3)
 
 The `attestation` module validates HTTP receipts, binds a task, observer and one-time challenge to an HMAC-SHA256 envelope, and rejects repeated challenges via a bounded process-local guard. This authenticates to a trusted shared-key holder; it is not a public signature, remote attestation, or proof of observer independence. See `docs/EVIDENCE_PROTOCOL.md`.
+
+
+### Transport failure tests (v0.4)
+
+The lab now includes a real socket read timeout after a controlled commit and an actual HTTP 503 from the observer. These are loopback experiments only, not a distributed durability guarantee.

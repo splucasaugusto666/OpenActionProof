@@ -1,7 +1,7 @@
 # Project state
 
-Stage: v0.3 local research MVP, 2026-11-23.
+Stage: v0.4 research MVP, 2026-11-23.
 
-Implemented: file verifier, 12-case loopback HTTP lab, checksummed receipts, two naive benchmark baselines, strict lab receipt checks, HMAC envelope, one-time challenge guard, CLI, CI definition and research/governance docs. Local Python 3.13.5: 21 unit tests passed; 12/12 synthetic HTTP verdicts matched. GitHub Actions results not yet confirmed.
+Implemented: file verifier, 14-case loopback HTTP lab including actual socket timeout and observer HTTP 503, receipt checksums, HMAC envelope with bounded replay guard, two naive benchmark baselines, CLI, CI definition, research/governance docs. Local Python 3.13.5: 23 unit tests passed and all 14 in-sample fixture verdicts matched. GitHub Actions execution is not yet confirmed.
 
-Not complete: actual timeout and observer transport failure fixtures; generic adapter protocol; independent observer process and durable replay store; external verifier comparisons/held-out evaluation; real agent integrations; official Guinness eligibility. Not production-ready.
+Not production-ready. Remaining: separate actor/observer trust domains, durable replay/key handling, generic adapter protocol, stale authoritative observations, held-out external verifier comparisons, real LLM integrations, independent reproduction and release validation. Guinness eligibility remains unapproved.
