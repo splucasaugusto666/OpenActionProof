@@ -95,3 +95,7 @@ Run the new adversarial corpus: `PYTHONPATH=src python -m openactionproof.observ
 ## Research preview packaging
 
 The proposed package metadata is now 0.9.0rc1 (not a tagged release). Build a wheel with `python -m pip wheel --no-deps --wheel-dir dist .`, then install the resulting wheel into a clean virtual environment with `python -m pip install --no-deps --no-index --find-links dist open-action-proof==0.9.0rc1`. Run `python scripts/smoke_installed.py` from a checkout using that environment. The smoke test exercises the installed CLI and both development corpora from a separate temporary working directory. Core runtime has zero third-party dependencies. The optional Inspect AI evaluation uses a pinned framework version and controlled callbacks, not a live LLM; see docs/INSPECT_INTEGRATION.md. Cross-platform and optional framework CI are pending.
+
+## Exact declared scope (experimental)
+
+The optional `openactionproof.scope.verify_scoped_write` verifies a caller-pinned initial and final SQLite table snapshot, detecting collateral row changes and repeated revision increments within that scope. It is not a whole-system side-effect or causal guarantee. See docs/SCOPED_VERIFICATION.md. Reproduce the post-freeze evaluation with `PYTHONPATH=src python scripts/evaluate_operation_scope.py`; its negative findings are preserved in benchmarks/POST_FREEZE_SCOPE_RESULTS.md. The 0.9.0rc1 package was validated by installed-wheel CI on Windows, Linux and macOS and by a controlled Inspect AI integration. This proposed extension still awaits CI.
