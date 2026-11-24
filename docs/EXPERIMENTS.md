@@ -25,3 +25,7 @@ Local Python 3.13.5: 23 unit tests passed, 14/14 fixture verdicts matched. Binar
 ## Proposed v0.5: durable replay protection
 
 2026-11-23, Python 3.13.5: `PYTHONPATH=src python -m unittest discover -s tests -v` produced 30 passing tests in 2.055 seconds. In the concurrent test, exactly one of 16 competing connections consumed the challenge. A separate Python process rejected a previously consumed challenge. Invalid MACs did not consume a challenge, missing/corrupt databases failed closed, and persisted capacity prevented drift. Not a power-loss or distributed-storage experiment. Remote CI unconfirmed.
+
+## Authenticated observation pair experiment
+
+2026-11-23, Python 3.13.5: `PYTHONPATH=src python -m unittest discover -s tests -q` ran 48 tests in 4.091 seconds, all passed. Nine new tests cover authenticated pair acceptance, replay after reopen, wrong key/task/goal/window, tampering, incomplete pairs, rollback on second-token conflict, 16 competing threads (one accepted, 15 indeterminate), capacity exhaustion, state mismatch and missing storage. Local construction tests only. The prior observer PR #5 CI passed on Python 3.10, 3.12 and 3.13. CI for these new changes is pending.
