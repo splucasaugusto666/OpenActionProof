@@ -134,16 +134,21 @@ class DispatchLedger:
         except (sqlite3.Error, ValueError):
             return False
 
-    def lookup(self, scope: str, call_id: str) -> DispatchRecord:
+    def lookup(self, scope: str, call_id: str, *, expected_digest: str | None = None) -> DispatchRecord:
         """Read the local journal; absence is not proof that an actor did nothing."""
-        if not _token(scope) or not _token(call_id):
+        if (not _token(scope) or not _token(call_id)
+                or (expected_digest is not None and (not isinstance(expected_digest, str)
+                    or not re.fullmatch(r"[a-f0-9]{64}", expected_digest)))):
             return DispatchRecord("INVALID_CALL")
         try:
             with closing(self._connect()) as conn:
                 self._check_schema(conn)
-                row = conn.execute("SELECT o.status,o.actor_status,o.verdict FROM dispatch d LEFT JOIN dispatch_outcome o USING(scope,call_id) WHERE d.scope=? AND d.call_id=?", (scope, call_id)).fetchone()
+                row = conn.execute("SELECT d.digest,o.status,o.actor_status,o.verdict FROM dispatch d LEFT JOIN dispatch_outcome o USING(scope,call_id) WHERE d.scope=? AND d.call_id=?", (scope, call_id)).fetchone()
             if row is None:
                 return DispatchRecord("NOT_FOUND")
+            if expected_digest is not None and row[0] != expected_digest:
+                return DispatchRecord("CALL_ID_CONFLICT")
+            row = row[1:]
             if row == (None, None, None):
                 return DispatchRecord("PENDING_RECONCILIATION")
             if row == ("UNRESOLVED", None, None):
