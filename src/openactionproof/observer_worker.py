@@ -17,6 +17,12 @@ from .observer import ObservationRequest, SQLiteObserver
 from .verified_observation import authenticate, observe_authenticated
 
 MAX_MESSAGE = 65536
+# Explicitly import only the trusted package containing this module. Do not
+# let cwd, PYTHONPATH or site startup hooks choose the code receiving the key.
+WORKER_BOOTSTRAP = (
+    "import sys, runpy; sys.path.insert(0, sys.argv.pop(1)); "
+    "runpy.run_module('openactionproof.observer_worker', run_name='__main__')"
+)
 
 
 def _unique_object(pairs):
@@ -41,14 +47,17 @@ def read_authenticated(path: Path, key: bytes, task_id: str, expected: str,
     Intended for trusted local deployments; do not accept caller-supplied worker
     executables or expose the worker as a general signing oracle.
     """
-    if not request.valid() or not isinstance(key, bytes) or not 32 <= len(key) <= 128:
+    if (not isinstance(request, ObservationRequest) or not request.valid()
+            or not isinstance(key, bytes) or not 32 <= len(key) <= 128):
         return None
-    if not 0 < timeout <= 30:
+    if type(timeout) not in (int, float) or not 0 < timeout <= 30:
         return None
     now = time.time_ns()
-    remaining = (request.deadline_ns - now) / 1_000_000_000
-    if now < request.not_before_ns or remaining <= 0:
+    remaining_ns = request.deadline_ns - now
+    if now < request.not_before_ns or remaining_ns <= 0:
         return None
+    # Bound before conversion, including untrusted huge integer deadlines.
+    remaining = min(remaining_ns, 30_000_000_000) / 1_000_000_000
     payload = {"key": key.hex(), "task_id": task_id, "expected": expected,
                "request": asdict(request)}
     try:
@@ -56,7 +65,8 @@ def read_authenticated(path: Path, key: bytes, task_id: str, expected: str,
         if len(data) > MAX_MESSAGE:
             return None
         result = subprocess.run(
-            [sys.executable, "-m", "openactionproof.observer_worker", str(Path(path).absolute()), request.observer_id],
+            [sys.executable, "-I", "-S", "-c", WORKER_BOOTSTRAP,
+             str(Path(__file__).resolve().parents[1]), str(Path(path).absolute()), request.observer_id],
             input=data, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             timeout=min(timeout, remaining), check=False,
         )
