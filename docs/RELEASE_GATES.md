@@ -9,3 +9,5 @@
 - Release provenance review, official version metadata and GitHub release publication: pending.
 
 No merge while required CI is unconfirmed. A 1.0 release must be identifiable and usable, with a documented scope and limitations, passing relevant tests, reproducible framework integration and honest comparative evidence. Do not silently weaken the saved release gates, claim external approval, or tag 1.0 before the criteria are met.
+
+- PR #14: all seven CI jobs passed; merged. Proposed public-key evidence extension: 114/114 local tests passed with cryptography 46.0.4, including nine Ed25519 tests. Dedicated optional-extension CI pending. Signature verification improves key separation but does not close independent observer isolation, key lifecycle or independent benchmark gates. Official v1.0.0 remains unpublished.
