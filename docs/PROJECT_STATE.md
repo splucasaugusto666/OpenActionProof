@@ -25,3 +25,7 @@ PR #7 merged after GitHub Actions passed on Python 3.10, 3.12 and 3.13. New prop
 ## Durable tool dispatch — proposed PR
 
 PR #8 merged after three Python CI jobs succeeded. New proposed adapter validates structured tool calls against a host-pinned intent and atomically claims the invocation in a persistent SQLite ledger before dispatch. 71/71 local tests passed in Python 3.13.5, including 9 new dispatch tests; 16/16 observation benchmark cases matched again. Both new Python files match tested Git blob hashes. Remote CI for the proposal is pending. No live SDK integration, independent comparison, exactly-once execution, distributed safety or published 1.0 release claimed. See docs/TOOL_DISPATCH.md.
+
+## Durable dispatch recovery — proposed PR
+
+PR #9 merged after successful Python 3.10, 3.12 and 3.13 CI. The proposed recovery journal persists immutable verifier summaries and distinguishes pending, unresolved and recorded outcomes; an explicit migration preserves legacy claims. Python 3.13.5: 81/81 local tests passed (19.899 s), including ten recovery tests and an actual interrupted subprocess. Existing 16-case observation corpus: 16/16. Both changed Python blobs match the tested source files. Remote CI pending; no automatic reconciliation, physical power-loss guarantee, independently verified benchmark, or live framework integration. Next: review the PR, add a reconciliation protocol with fresh authenticated observations, and test real framework integration before a release.
