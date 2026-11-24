@@ -7,3 +7,5 @@
 5. Research external reproducibility and official Guinness eligibility separately.
 
 Proposed v0.5 PR addresses the local durable replay portion of item 2. Next: validate CI, separate the observer interface from the actor, bind fresh observations to the requested intent, and test stale observations. Key rotation, crash/power-loss validation and external evaluation are still pending.
+
+Current priority after authenticated pairs: end-to-end trusted observer subprocess integration with key custody and fresh challenge issuance, external verifier adapter and held-out evaluation, then packaging and documented release criteria. Recheck this PR's CI before merging. Do not mistake matched state for actor attribution. Security isolation, durable intent lifecycle, key rotation and storage rollback resistance remain open.
