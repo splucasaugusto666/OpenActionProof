@@ -21,3 +21,7 @@ PR #6 merged after successful Python CI on 3.10, 3.12 and 3.13. This follow-up a
 ## Tool session and observation corpus — proposed candidate
 
 PR #7 merged after GitHub Actions passed on Python 3.10, 3.12 and 3.13. New proposed changes: framework-neutral trusted synchronous tool API; 16-case developer-authored authenticated observation corpus with two explicit baselines; 62/62 local Python 3.13.5 tests passing. All five added source/test/corpus Git blob hashes match the tested local files. CI for this proposed PR remains pending. No external LLM framework is installed in the local environment; no real LLM integration or independent competitor comparison has been executed. Version labels in development discussion are milestones, not published release tags.
+
+## Durable tool dispatch — proposed PR
+
+PR #8 merged after three Python CI jobs succeeded. New proposed adapter validates structured tool calls against a host-pinned intent and atomically claims the invocation in a persistent SQLite ledger before dispatch. 71/71 local tests passed in Python 3.13.5, including 9 new dispatch tests; 16/16 observation benchmark cases matched again. Both new Python files match tested Git blob hashes. Remote CI for the proposal is pending. No live SDK integration, independent comparison, exactly-once execution, distributed safety or published 1.0 release claimed. See docs/TOOL_DISPATCH.md.
