@@ -1,0 +1,3 @@
+# Instructions for contributing AI agents
+
+Check `docs/PROJECT_STATE.md` first. Change only what the task needs. Never mark a tool call as completed without independently observed state. Add runnable tests. No secrets, fake performance metrics, or empty commits. Run `PYTHONPATH=src python -m unittest discover -s tests -v` before committing. Update `docs/NEXT_ACTIONS.md` with evidence of work actually done.
