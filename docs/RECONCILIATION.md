@@ -1,0 +1,11 @@
+# Read-only reconciliation
+
+An interrupted or unresolved dispatch must not be repeated automatically. The host can call openactionproof.reconciliation.reconcile_write with the original scope, call ID, resource and expected value, its trusted dispatch ledger, replay guard, observer database, observer ID and shared key. The adapter first checks that the original claim digest matches; unknown or conflicting claims are not observed. It then issues a fresh challenge bound to the claim and authenticates the current target observation through the existing worker. The challenge is consumed durably before reporting the observation.
+
+The returned historical DispatchRecord and current observation are deliberately distinct. CURRENT_STATE_MATCHES_UNATTRIBUTED describes only the newly observed target value; CURRENT_STATE_DIFFERS describes a different value; INDETERMINATE means no accepted fresh observation; NOT_OBSERVED means the claim was not eligible for inspection. Observation time and revision are included only for an accepted observation. The adapter neither invokes the actor nor modifies the historical journal. It does not authorize retry, reconstruct an earlier event, establish actor attribution or check collateral effects. The host must pin the original database and observer configuration; trusted storage, clock, interpreter and shared secret are still prerequisites. The ledger and state snapshots are not one atomic cross-database transaction. The observation is a point-in-time reading, not a guarantee that the state remains unchanged.
+
+Local Python environment: 99/99 unit tests passed in 26.834 seconds (8 new reconciliation tests). Tests cover unknown and conflicting claims, current versus historical divergence, missing observer and ledger, replay capacity exhaustion, invalid configuration and no duplicate execution authorization. All three changed Python blobs match the locally tested files. PR #12 passed seven GitHub Actions jobs and was merged before this proposal. Remote CI for this proposal remains pending.
+
+Reproduce: PYTHONPATH=src python -W error::ResourceWarning -m unittest discover -s tests -q
+
+No official release, independent security audit or competitor superiority is claimed.
