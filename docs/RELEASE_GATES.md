@@ -1,13 +1,18 @@
-# Release gates — current research preview
+# Release gates
 
-- PR #11 merged after all seven GitHub Actions jobs passed: Python 3.10/3.12/3.13, installed wheel on Ubuntu/Windows/macOS, and the pinned Inspect AI controlled evaluation. The integration executes the actual evaluation framework but no live model.
-- Local preview package 0.9.0rc1 was built and installed; 33 installed smoke cases passed. No official release tag or GitHub release yet.
-- Proposed scope PR: 91/91 local tests passed. Frozen 12-case evaluation matched every target verdict; broader exact-operation endpoint exposed two false positives when the target verdict was misused. An optional exact snapshot scope adapter addresses the two known classes in regression tests. See benchmarks/POST_FREEZE_SCOPE_RESULTS.md and docs/SCOPED_VERIFICATION.md. Remote CI for this PR pending.
-- Independent held-out evaluation and external verifier comparison: not yet demonstrated. Developer-authored post-freeze corpus is not independent or blinded.
-- Independent threat-model review, stronger observer isolation and secret lifecycle: pending.
-- Recovery journal exists; fresh authenticated reconciliation protocol and durable intent lifecycle remain incomplete.
-- Release provenance review, official version metadata and GitHub release publication: pending.
+## Verified milestones
 
-No merge while required CI is unconfirmed. A 1.0 release must be identifiable and usable, with a documented scope and limitations, passing relevant tests, reproducible framework integration and honest comparative evidence. Do not silently weaken the saved release gates, claim external approval, or tag 1.0 before the criteria are met.
+- Public research prerelease [v0.9.0rc2](https://github.com/splucasaugusto666/OpenActionProof/releases/tag/v0.9.0rc2), published 2026-11-24 UTC, with wheel and SHA256SUMS.txt. Workflow [45313855917](https://github.com/splucasaugusto666/OpenActionProof/actions/runs/45313855917): six successful jobs including Windows, macOS, Linux, Python 3.10/3.12/3.13 and controlled Inspect AI.
+- PR #18 authorized observer key grants and passed eight CI jobs; PR #19 external comparison passed nine CI jobs; PR #20 bounded-memory snapshots passed eight CI jobs and merged. Combined-main CI is a separate check.
+- PR #19 executed the actual Verieffect 0.2.0a4 distribution with pinned wheel digest, both tools scored 100/100 on twelve final-file cases. Narrow developer-authored experiment, not independent leadership evidence.
+- PR #20 local 125/125 tests reported; local before/after memory improvement documented. See benchmarks/STREAMING_SNAPSHOT.md.
+- The published wheel predates PRs #18–20. The repository and release are not interchangeable.
 
-- PR #14: all seven CI jobs passed; merged. Proposed public-key evidence extension: 114/114 local tests passed with cryptography 46.0.4, including nine Ed25519 tests. Dedicated optional-extension CI pending. Signature verification improves key separation but does not close independent observer isolation, key lifecycle or independent benchmark gates. Official v1.0.0 remains unpublished.
+## Remaining gates before stable v1.0.0
+
+- Independent held-out evaluation and broader like-for-like external comparison; report negative findings and unsupported cases.
+- Independent threat-model and security review, stronger observer isolation and private-key custody/current-policy distribution, with no unresolved known critical failures.
+- Reproducible integration, documented protocol and operational boundaries, complete installation and evidence instructions; controlled Inspect evaluation is already validated, no live model claim.
+- Final source/version alignment, provenance and package validation, all required tests and CI on release commit, changelog and public stable release with actual assets confirmed.
+
+Do not reduce these gates to increase apparent progress. External recognition and APEX growth are tracked separately in research/APEX_GLOBAL_SCORECARD.md; popularity does not gate v1.0.0.
