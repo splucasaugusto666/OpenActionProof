@@ -79,3 +79,8 @@ The `attestation` module validates HTTP receipts, binds a task, observer and one
 ### Transport failure tests (v0.4)
 
 The lab now includes a real socket read timeout after a controlled commit and an actual HTTP 503 from the observer. These are loopback experiments only, not a distributed durability guarantee.
+
+
+## Durable replay protection (proposed v0.5)
+
+`DurableReplayGuard` uses SQLite to consume authenticated challenges atomically across processes and reopenings. Explicitly provision a database once with `DurableReplayGuard(path, initialize=True)`; reopen with `DurableReplayGuard(path)`. Do not recreate or restore an older database while challenges are valid. Requires trusted local storage with SQLite locking; no distributed guarantee. See `docs/EVIDENCE_PROTOCOL.md`.

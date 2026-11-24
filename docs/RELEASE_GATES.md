@@ -9,3 +9,5 @@
 - External replication: pending.
 
 A research MVP is not a production-ready or independently validated system. Do not claim record eligibility, universal accuracy, or industry superiority.
+
+Proposed v0.5 PR: 30/30 local unit tests passed; durable replay is implemented for trusted local SQLite storage. Remote CI, integration and independent validation gates remain open. Do not merge while required CI is unverified.
