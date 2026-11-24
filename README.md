@@ -99,3 +99,7 @@ The proposed package metadata is now 0.9.0rc1 (not a tagged release). Build a wh
 ## Exact declared scope (experimental)
 
 The optional `openactionproof.scope.verify_scoped_write` verifies a caller-pinned initial and final SQLite table snapshot, detecting collateral row changes and repeated revision increments within that scope. It is not a whole-system side-effect or causal guarantee. See docs/SCOPED_VERIFICATION.md. Reproduce the post-freeze evaluation with `PYTHONPATH=src python scripts/evaluate_operation_scope.py`; its negative findings are preserved in benchmarks/POST_FREEZE_SCOPE_RESULTS.md. The 0.9.0rc1 package was validated by installed-wheel CI on Windows, Linux and macOS and by a controlled Inspect AI integration. This proposed extension still awaits CI.
+
+## Public-key evidence (experimental)
+
+Install the optional extra with `python -m pip install ".[public-evidence]"`. The new `openactionproof.public_observation` module supports Ed25519 signed observations and pinned-key verification with durable replay protection. Unlike HMAC, a verifier need not possess the private signing key. Observer trust and key authorization remain caller responsibilities; this is not causal proof or a certified identity system. See docs/PUBLIC_EVIDENCE.md.
