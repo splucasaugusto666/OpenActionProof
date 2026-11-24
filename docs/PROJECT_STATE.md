@@ -17,3 +17,7 @@ PR #4 (durable replay) and PR #5 (reference observer) merged after GitHub Action
 ## Authenticated subprocess transport — candidate
 
 PR #6 merged after successful Python CI on 3.10, 3.12 and 3.13. This follow-up adds a fixed local observer worker that reads SQLite state and authenticates observations; a full integration test executes the actor separately, observes before/after through workers and rejects replay using persistent storage. Local Python 3.13.5: 55/55 tests passed, including seven new worker tests. Remote CI pending. This is a reference transport, not a privilege sandbox or LLM integration. External benchmarks and production security validation remain incomplete.
+
+## Tool session and observation corpus — proposed candidate
+
+PR #7 merged after GitHub Actions passed on Python 3.10, 3.12 and 3.13. New proposed changes: framework-neutral trusted synchronous tool API; 16-case developer-authored authenticated observation corpus with two explicit baselines; 62/62 local Python 3.13.5 tests passing. All five added source/test/corpus Git blob hashes match the tested local files. CI for this proposed PR remains pending. No external LLM framework is installed in the local environment; no real LLM integration or independent competitor comparison has been executed. Version labels in development discussion are milestones, not published release tags.
