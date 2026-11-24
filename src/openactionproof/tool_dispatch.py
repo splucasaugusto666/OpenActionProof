@@ -39,9 +39,24 @@ class DispatchResult:
     outcome: ToolOutcome | None = None
 
 
+@dataclass(frozen=True)
+class DispatchRecord:
+    status: str
+    outcome: ToolOutcome | None = None
+
+
+def _valid_outcome(outcome):
+    return (isinstance(outcome, ToolOutcome)
+            and outcome.actor_status in ("RETURNED", "RAISED", "NOT_INVOKED")
+            and outcome.verdict in ("STATE_MATCHED_UNATTRIBUTED", "STATE_PREEXISTING", "STATE_MISMATCH", "INDETERMINATE")
+            and (outcome.actor_status != "NOT_INVOKED" or outcome.verdict == "INDETERMINATE"))
+
+
 class DispatchLedger:
     """Explicitly provision a trusted database once; never silently recreate it."""
-    def __init__(self, path: Path, *, initialize: bool = False):
+    def __init__(self, path: Path, *, initialize: bool = False, upgrade: bool = False):
+        if initialize and upgrade:
+            raise ValueError("choose initialize or upgrade, not both")
         self.path = Path(path).absolute()
         if initialize:
             fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
@@ -50,13 +65,34 @@ class DispatchLedger:
             if initialize:
                 conn.execute("BEGIN IMMEDIATE")
                 conn.execute("CREATE TABLE dispatch (scope TEXT NOT NULL, call_id TEXT NOT NULL, digest TEXT NOT NULL, PRIMARY KEY(scope,call_id))")
+                self._install_outcomes(conn)
                 conn.commit()
-            conn.execute("SELECT scope, call_id, digest FROM dispatch LIMIT 0")
+            elif upgrade:
+                conn.execute("BEGIN IMMEDIATE")
+                if conn.execute("PRAGMA user_version").fetchone() != (0,):
+                    raise ValueError("only legacy dispatch schema can be upgraded")
+                conn.execute("SELECT scope, call_id, digest FROM dispatch LIMIT 0")
+                self._install_outcomes(conn)
+                conn.commit()
+            self._check_schema(conn)
+
+    @staticmethod
+    def _install_outcomes(conn):
+        conn.execute("CREATE TABLE dispatch_outcome (scope TEXT NOT NULL, call_id TEXT NOT NULL, status TEXT NOT NULL, actor_status TEXT, verdict TEXT, PRIMARY KEY(scope,call_id), FOREIGN KEY(scope,call_id) REFERENCES dispatch(scope,call_id), CHECK ((status='UNRESOLVED' AND actor_status IS NULL AND verdict IS NULL) OR (status='OUTCOME_RECORDED' AND actor_status IS NOT NULL AND verdict IS NOT NULL)))")
+        conn.execute("PRAGMA user_version=1")
+
+    @staticmethod
+    def _check_schema(conn):
+        if conn.execute("PRAGMA user_version").fetchone() != (1,):
+            raise ValueError("unsupported dispatch schema; legacy databases require explicit upgrade")
+        conn.execute("SELECT scope, call_id, digest FROM dispatch LIMIT 0")
+        conn.execute("SELECT scope, call_id, status, actor_status, verdict FROM dispatch_outcome LIMIT 0")
 
     def _connect(self):
         conn = sqlite3.connect(self.path.as_uri() + "?mode=rw", uri=True, isolation_level=None, timeout=3)
         try:
             conn.execute("PRAGMA synchronous=FULL")
+            conn.execute("PRAGMA foreign_keys=ON")
             return conn
         except sqlite3.Error:
             conn.close()
@@ -68,14 +104,56 @@ class DispatchLedger:
         try:
             with closing(self._connect()) as conn:
                 conn.execute("BEGIN IMMEDIATE")
+                self._check_schema(conn)
                 row = conn.execute("SELECT digest FROM dispatch WHERE scope=? AND call_id=?", (scope, call_id)).fetchone()
                 if row is not None:
                     return "ALREADY_CLAIMED" if row[0] == digest else "CALL_ID_CONFLICT"
                 conn.execute("INSERT INTO dispatch VALUES (?,?,?)", (scope, call_id, digest))
                 conn.commit()
                 return "CLAIMED"
-        except sqlite3.Error:
+        except (sqlite3.Error, ValueError):
             return "STORAGE_UNAVAILABLE"
+
+    def record(self, scope: str, call_id: str, digest: str, outcome: ToolOutcome | None) -> bool:
+        """Record a trusted verifier result once; never overwrite or re-dispatch."""
+        if (not _token(scope) or not _token(call_id) or not isinstance(digest, str)
+                or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                or (outcome is not None and not _valid_outcome(outcome))):
+            return False
+        fields = ("UNRESOLVED", None, None) if outcome is None else ("OUTCOME_RECORDED", outcome.actor_status, outcome.verdict)
+        try:
+            with closing(self._connect()) as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                self._check_schema(conn)
+                row = conn.execute("SELECT digest FROM dispatch WHERE scope=? AND call_id=?", (scope, call_id)).fetchone()
+                if row != (digest,):
+                    return False
+                conn.execute("INSERT INTO dispatch_outcome VALUES (?,?,?,?,?)", (scope, call_id, *fields))
+                conn.commit()
+                return True
+        except (sqlite3.Error, ValueError):
+            return False
+
+    def lookup(self, scope: str, call_id: str) -> DispatchRecord:
+        """Read the local journal; absence is not proof that an actor did nothing."""
+        if not _token(scope) or not _token(call_id):
+            return DispatchRecord("INVALID_CALL")
+        try:
+            with closing(self._connect()) as conn:
+                self._check_schema(conn)
+                row = conn.execute("SELECT o.status,o.actor_status,o.verdict FROM dispatch d LEFT JOIN dispatch_outcome o USING(scope,call_id) WHERE d.scope=? AND d.call_id=?", (scope, call_id)).fetchone()
+            if row is None:
+                return DispatchRecord("NOT_FOUND")
+            if row == (None, None, None):
+                return DispatchRecord("PENDING_RECONCILIATION")
+            if row == ("UNRESOLVED", None, None):
+                return DispatchRecord("UNRESOLVED")
+            outcome = ToolOutcome(row[1], row[2])
+            if row[0] == "OUTCOME_RECORDED" and _valid_outcome(outcome):
+                return DispatchRecord("OUTCOME_RECORDED", outcome)
+            return DispatchRecord("STORAGE_UNAVAILABLE")
+        except (sqlite3.Error, ValueError):
+            return DispatchRecord("STORAGE_UNAVAILABLE")
 
 
 def dispatch_write(*, ledger: DispatchLedger, scope: str, permitted_resource: str,
@@ -111,12 +189,18 @@ def dispatch_write(*, ledger: DispatchLedger, scope: str, permitted_resource: st
     except (KeyError, TypeError, ValueError, OverflowError, RecursionError):
         return DispatchResult("INVALID_CALL")
     claimed = ledger.claim(scope, call["id"], digest)
+    if claimed == "ALREADY_CLAIMED":
+        record = ledger.lookup(scope, call["id"])
+        return DispatchResult(claimed, record.outcome)
     if claimed != "CLAIMED":
         return DispatchResult(claimed)
     try:
         outcome = verify(lambda: write(permitted_resource, expected_value))
-        if not isinstance(outcome, ToolOutcome):
-            return DispatchResult("CLAIMED_UNRESOLVED")
-        return DispatchResult("CLAIMED", outcome)
     except Exception:
+        outcome = None
+    if not _valid_outcome(outcome):
+        ledger.record(scope, call["id"], digest, None)
         return DispatchResult("CLAIMED_UNRESOLVED")
+    if not ledger.record(scope, call["id"], digest, outcome):
+        return DispatchResult("CLAIMED_UNRESOLVED")
+    return DispatchResult("CLAIMED", outcome)
