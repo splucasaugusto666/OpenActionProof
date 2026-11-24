@@ -1,7 +1,7 @@
 # Next actions
 
-1. Add actual elapsed-time timeout, on-wire observer failure, and stale authoritative reads.
-2. Separate actor and observer trust boundaries; validate evidence schemas; adversarially test integrity and forged evidence.
-3. Freeze a held-out corpus and build adapters to external outcome verifiers (Inspect AI/AgentVerify where compatible).
-4. Run multi-platform CI and independently reproduce results.
-5. Release candidate only when documented acceptance gates pass; investigate Guinness separately.
+1. Add elapsed-time timeout and on-wire observer failure; independently model stale observations.
+2. Generalize the evidence contract and separate actor/observer processes; threat model key distribution and persistent replay handling.
+3. Freeze a held-out corpus and compare with external verifiers such as Inspect AI and AgentVerify where compatible.
+4. Confirm CI across Python versions/platforms and independently reproduce results.
+5. Publish a release candidate only after the gates pass. Guinness requires separate official approval.

@@ -1,7 +1,7 @@
 # Project state
 
-Stage: v0.2 local research MVP, 2026-11-23.
+Stage: v0.3 local research MVP, 2026-11-23.
 
-Implemented: local file verifier, 12-case loopback HTTP conformance lab, self-checksum receipts, binary benchmark with two naive baselines, CLI, CI definition, research and governance docs. 12 unit tests passed in the local Python 3.13.5 environment; 12/12 synthetic HTTP fixture verdicts matched. Remote CI status is not yet confirmed.
+Implemented: file verifier, 12-case loopback HTTP lab, checksummed receipts, two naive benchmark baselines, strict lab receipt checks, HMAC envelope, one-time challenge guard, CLI, CI definition and research/governance docs. Local Python 3.13.5: 21 unit tests passed; 12/12 synthetic HTTP verdicts matched. GitHub Actions results not yet confirmed.
 
-Not a production security boundary. No real LLM agents, external verifier comparisons, authenticated provenance, independent reproduction, distributed durability, or officially approved Guinness attempt.
+Not complete: actual timeout and observer transport failure fixtures; generic adapter protocol; independent observer process and durable replay store; external verifier comparisons/held-out evaluation; real agent integrations; official Guinness eligibility. Not production-ready.
