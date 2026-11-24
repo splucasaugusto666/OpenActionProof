@@ -29,3 +29,8 @@ PR #8 merged after three Python CI jobs succeeded. New proposed adapter validate
 ## Durable dispatch recovery — proposed PR
 
 PR #9 merged after successful Python 3.10, 3.12 and 3.13 CI. The proposed recovery journal persists immutable verifier summaries and distinguishes pending, unresolved and recorded outcomes; an explicit migration preserves legacy claims. Python 3.13.5: 81/81 local tests passed (19.899 s), including ten recovery tests and an actual interrupted subprocess. Existing 16-case observation corpus: 16/16. Both changed Python blobs match the tested source files. Remote CI pending; no automatic reconciliation, physical power-loss guarantee, independently verified benchmark, or live framework integration. Next: review the PR, add a reconciliation protocol with fresh authenticated observations, and test real framework integration before a release.
+
+
+## Research preview packaging and interoperability — proposed PR
+
+PR #10 merged after all three Python CI jobs succeeded. New proposal aligns distribution and import versions at 0.9.0rc1, adds portable path restrictions and redacts raw exception messages in the original file receipts. Local Python 3.13.5: 83/83 unit tests passed (19.893 s); local wheel built without index access and installed in a fresh virtual environment with no runtime dependencies; 33 installed smoke cases passed (3 file, 14 HTTP, 16 observation). New cross-platform workflow and optional real Inspect AI framework task are configured but not yet executed remotely. Inspect AI is not installed locally; no framework success claim. Local wheel is a development artifact, not a release. See docs/RELEASE_GATES.md and docs/INSPECT_INTEGRATION.md.
