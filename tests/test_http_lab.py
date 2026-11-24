@@ -35,6 +35,28 @@ class HTTPConformanceTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(state["counts"]["target"], 1)
 
+    def test_settle_consumes_body_and_rejects_invalid_payload(self):
+        with service(Store()) as port:
+            status, _ = request(port, "POST", "/action", {"mode": "queued", "resource": "target", "key": "a"})
+            self.assertEqual(status, 202)
+            status, _ = request(port, "POST", "/settle", {"unexpected": "x" * 8192})
+            self.assertEqual(status, 400)
+            _, state = request(port, "GET", "/state")
+            self.assertEqual(state["pending"], 1)
+            self.assertEqual(state["counts"]["target"], 0)
+            status, _ = request(port, "POST", "/settle", {})
+            self.assertEqual(status, 200)
+            _, state = request(port, "GET", "/state")
+            self.assertEqual(state["counts"]["target"], 1)
+
+    def test_malformed_action_does_not_mutate_store(self):
+        with service(Store()) as port:
+            for data in ({}, {"mode": "unknown", "resource": "target", "key": "a"},
+                         {"mode": "ok", "resource": "missing", "key": "a"}):
+                self.assertEqual(request(port, "POST", "/action", data)[0], 400)
+            _, state = request(port, "GET", "/state")
+            self.assertEqual(state, {"counts": {"target": 0, "other": 0}, "events": [], "pending": 0})
+
     def test_actual_observer_http_503(self):
         store = Store()
         with service(store) as port:
