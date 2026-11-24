@@ -1,10 +1,12 @@
+import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from openactionproof.cli import demo
-from openactionproof.core import ActionSpec, check_receipt, relative_target, verify_action
+from openactionproof.core import ActionSpec, check_receipt, relative_target, snapshot, verify_action
 
 
 class CoreTests(unittest.TestCase):
@@ -82,6 +84,17 @@ class CoreTests(unittest.TestCase):
             (root / "already.txt").write_bytes(b"same")
             proof = verify_action(root, ActionSpec("P", "already.txt", b"same", True), lambda _: None, operation_name="no_op")
             self.assertEqual(proof["verification"]["verdict"], "STATE_SATISFIED_UNATTRIBUTED")
+
+    def test_streamed_snapshot_chunk_boundaries(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for size in (0, 1, 262143, 262144, 262145, 1048579):
+                with self.subTest(size=size):
+                    content = (b"abc123" * (size // 6 + 1))[:size]
+                    (root / "file").write_bytes(content)
+                    with patch.object(Path, "read_bytes", side_effect=AssertionError("unbounded read")):
+                        observed = snapshot(root, "file")
+                    self.assertEqual(observed, {"exists": True, "sha256": hashlib.sha256(content).hexdigest(), "size": size})
 
     def test_empty_file_success(self):
         with TemporaryDirectory() as tmp:
