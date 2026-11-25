@@ -1,6 +1,7 @@
 from contextlib import closing
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 import secrets
 import sqlite3
@@ -92,6 +93,33 @@ class WorkerTests(unittest.TestCase):
         r = subprocess.run([sys.executable, "-m", "openactionproof.observer_worker", str(self.db), req.observer_id], input=payload, capture_output=True, timeout=5)
         self.assertEqual(r.returncode, 2)
         self.assertEqual(r.stdout + r.stderr, b"")
+
+    def test_worker_ignores_ambient_import_paths_and_site_hooks(self):
+        shadow = Path(self.tmp.name) / "shadow"
+        package = shadow / "openactionproof"
+        package.mkdir(parents=True)
+        marker = shadow / "unexpected.txt"
+        # Harmless sentinel, not a secret: prove neither shadow package nor
+        # Python startup hook runs in the worker receiving the signing key.
+        sentinel = f"from pathlib import Path; Path({str(marker)!r}).write_text('unexpected')\n"
+        (package / "__init__.py").write_text(sentinel, encoding="utf-8")
+        (package / "observer_worker.py").write_text(sentinel, encoding="utf-8")
+        (shadow / "sitecustomize.py").write_text(sentinel, encoding="utf-8")
+        cwd = Path.cwd()
+        try:
+            os.chdir(shadow)
+            with patch.dict(os.environ, {"PYTHONPATH": str(shadow)}):
+                self.assertIsNotNone(self.read(self.request()))
+        finally:
+            os.chdir(cwd)
+        self.assertFalse(marker.exists())
+
+    def test_invalid_request_or_timeout_fails_closed_without_spawn(self):
+        with patch("openactionproof.observer_worker.subprocess.run") as run:
+            self.assertIsNone(self.read(None))
+            for timeout in (True, "1", None, float("nan"), float("inf"), 0, 31):
+                self.assertIsNone(self.read(self.request(), timeout=timeout))
+            run.assert_not_called()
 
     def test_key_not_in_command_line(self):
         with patch("openactionproof.observer_worker.subprocess.run", wraps=subprocess.run) as run:

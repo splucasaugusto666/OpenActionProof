@@ -20,3 +20,7 @@ Published on GitHub at 2026-11-24 02:40:24 UTC (November 23 in São Paulo). The 
 - Full cross-platform publication validation; fixed unread HTTP POST body regression that blocked the initial Windows run.
 
 Not a stable production release or independently audited security system. See [release notes](docs/PREVIEW_RC2.md) and [release gates](docs/RELEASE_GATES.md).
+
+## Proposed observer hardening
+
+- Pin worker package root, disable ambient Python import paths and site startup hooks, reject malformed request/timeouts before subprocess invocation. Two new regression tests; full local suite 127/127. CI pending.
