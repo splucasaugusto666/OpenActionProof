@@ -1,6 +1,8 @@
 """Local economic reservation ledger; trusted caller/storage, not a payment gateway."""
 from contextlib import closing, contextmanager
 import re
+import os
+from pathlib import Path
 import sqlite3
 
 MAX_AMOUNT = 10**15
@@ -30,23 +32,29 @@ def _digest(value):
 class EconomicLedger:
     """One immutable currency/cap per dedicated DB; never dispatches external work."""
 
-    def __init__(self, path, *, currency, limit):
+    def __init__(self, path, *, currency, limit, initialize=False):
         if not isinstance(currency, str) or not re.fullmatch(r"[A-Z]{3}", currency):
             raise BudgetError("invalid currency code format")
         _amount(limit, 1)
-        self.path = str(path)
-        if self.path == ':memory:' or not self.path:
+        if str(path) == ':memory:' or not str(path):
             raise BudgetError("persistent database path required")
+        self.path = Path(path).absolute()
         self.currency, self.limit = currency, limit
+        if initialize:
+            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.close(fd)
         with self._transaction() as con:
-            con.execute("CREATE TABLE IF NOT EXISTS economic_config (id INTEGER PRIMARY KEY CHECK(id=1), currency TEXT NOT NULL, cap INTEGER NOT NULL)")
-            con.execute("CREATE TABLE IF NOT EXISTS economic_reservations (request_id TEXT PRIMARY KEY, intent TEXT NOT NULL, reserved INTEGER NOT NULL CHECK(reserved>0), state TEXT NOT NULL CHECK(state IN ('RESERVED','SETTLED','RELEASED')), actual INTEGER NOT NULL CHECK(actual>=0 AND actual<=reserved), evidence TEXT)")
-            con.execute("INSERT OR IGNORE INTO economic_config VALUES (1,?,?)", (currency, limit))
+            if initialize:
+                con.execute("CREATE TABLE economic_config (id INTEGER PRIMARY KEY CHECK(id=1), currency TEXT NOT NULL, cap INTEGER NOT NULL)")
+                con.execute("CREATE TABLE economic_reservations (request_id TEXT PRIMARY KEY, intent TEXT NOT NULL, reserved INTEGER NOT NULL CHECK(reserved>0), state TEXT NOT NULL CHECK(state IN ('RESERVED','SETTLED','RELEASED')), actual INTEGER NOT NULL CHECK(actual>=0 AND actual<=reserved), evidence TEXT)")
+                con.execute("INSERT INTO economic_config VALUES (1,?,?)", (currency, limit))
+                con.execute("PRAGMA user_version=1")
             self._check_config(con)
 
     @contextmanager
     def _transaction(self):
-        with closing(sqlite3.connect(self.path, timeout=10, isolation_level=None)) as con:
+        with closing(sqlite3.connect(self.path.as_uri() + "?mode=rw", uri=True, timeout=10, isolation_level=None)) as con:
+            con.execute("PRAGMA synchronous=FULL")
             con.execute("BEGIN IMMEDIATE")
             try:
                 yield con
@@ -56,6 +64,9 @@ class EconomicLedger:
                 raise
 
     def _check_config(self, con):
+        if con.execute("PRAGMA user_version").fetchone() != (1,):
+            raise BudgetError("unsupported or uninitialized economic schema")
+        con.execute("SELECT request_id,intent,reserved,state,actual,evidence FROM economic_reservations LIMIT 0")
         if con.execute("SELECT currency,cap FROM economic_config WHERE id=1").fetchone() != (self.currency, self.limit):
             raise BudgetError("budget configuration mismatch")
 
