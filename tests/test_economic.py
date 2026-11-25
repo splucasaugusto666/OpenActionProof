@@ -1,5 +1,6 @@
 import concurrent.futures
 import tempfile
+import sqlite3
 import unittest
 from pathlib import Path
 from openactionproof.economic import BudgetError, EconomicLedger
@@ -10,7 +11,7 @@ class EconomicTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / 'budget.db'
-        self.ledger = EconomicLedger(self.path, currency='BRL', limit=100)
+        self.ledger = EconomicLedger(self.path, currency='BRL', limit=100, initialize=True)
         self.intent = 'a' * 64
         self.evidence = 'b' * 64
 
@@ -52,6 +53,23 @@ class EconomicTests(unittest.TestCase):
         for currency, limit in [('USD',100), ('BRL',101)]:
             with self.assertRaises(BudgetError):
                 EconomicLedger(self.path, currency=currency, limit=limit)
+
+    def test_missing_storage_fails_closed(self):
+        self.ledger.reserve('a', self.intent, 40)
+        self.path.unlink()
+        with self.assertRaises(sqlite3.Error):
+            self.ledger.reserve('a', self.intent, 40)
+        with self.assertRaises(sqlite3.Error):
+            EconomicLedger(self.path, currency='BRL', limit=100)
+        self.assertFalse(self.path.exists())
+
+    def test_no_reinitialize_or_empty_schema(self):
+        with self.assertRaises(FileExistsError):
+            EconomicLedger(self.path, currency='BRL', limit=100, initialize=True)
+        other = self.path.parent / 'empty.db'
+        other.touch()
+        with self.assertRaises(BudgetError):
+            EconomicLedger(other, currency='BRL', limit=100)
 
     def test_invalid_inputs(self):
         for amount in [True, 1.5, -1, 0, 10**16]:
